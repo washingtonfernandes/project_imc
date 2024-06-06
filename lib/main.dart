@@ -4,6 +4,7 @@ import 'package:project_imc/home.dart';
 void main() {
   runApp(
     MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: "Calculadora de IMC",
       theme: ThemeData(
         primarySwatch: Colors.blueGrey,
@@ -12,4 +13,3 @@ void main() {
     ),
   );
 }
-

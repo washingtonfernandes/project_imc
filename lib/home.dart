@@ -10,77 +10,94 @@ class _HomeState extends State<Home> {
   TextEditingController pesoController = TextEditingController();
   TextEditingController alturaController = TextEditingController();
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String _textInfo = "";
+  List<IMC> _imcList = [];
 
   void _resetCampos() {
     _formKey.currentState?.reset();
     nomeController.clear();
     pesoController.clear();
     alturaController.clear();
-    setState(() {
-      _textInfo = "";
-    });
   }
 
   void _calcular() {
-    try {
-      double peso = double.parse(pesoController.text);
-      double altura = double.parse(alturaController.text) / 100;
-      double imc = peso / (altura * altura);
+    if (_formKey.currentState?.validate() ?? false) {
+      try {
+        String nome = nomeController.text;
+        double peso = double.parse(pesoController.text);
+        double altura = double.parse(alturaController.text);
+        IMC imc = IMC(nome: nome, peso: peso, altura: altura);
 
-      _atualizarTextoInfo(imc);
-    } catch (e) {
-      print("Erro: $e");
-      setState(() {
-        _textInfo = "Erro nos dados inseridos. Verifique e tente novamente.";
-      });
+        setState(() {
+          _imcList.add(imc);
+        });
+
+        _resetCampos();
+      } catch (e) {
+        print("Erro: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                "Erro nos dados inseridos. Verifique e tente novamente.")));
+      }
     }
-  }
-
-  void _atualizarTextoInfo(double imc) {
-    if (imc < 18.6)
-      _textInfo = "Abaixo do peso (${imc.toStringAsPrecision(4)})";
-    else if (imc >= 18.6 && imc < 24.9)
-      _textInfo = "Peso ideal (${imc.toStringAsPrecision(4)})";
-    else if (imc >= 24.9 && imc < 29.9)
-      _textInfo = "Levemente acima do peso (${imc.toStringAsPrecision(4)})";
-    else if (imc >= 29.9 && imc < 34.9)
-      _textInfo = "Obesidade Grau I (${imc.toStringAsPrecision(4)})";
-    else if (imc >= 34.9 && imc < 39.9)
-      _textInfo = "Obesidade Grau II (${imc.toStringAsPrecision(4)})";
-    else if (imc >= 40)
-      _textInfo = "Obesidade Grau III (${imc.toStringAsPrecision(4)})";
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Calculadora de IMC"),
+        backgroundColor: Colors.amber,
+        title: const Text(
+          "Calculadora de IMC",
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         centerTitle: true,
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _resetCampos,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _construirIconePessoa(),
-              _construirCampoTexto("Nome", nomeController),
-              _construirCampoTexto(
-                  "Peso (kg)", pesoController, TextInputType.number),
-              _construirCampoTexto(
-                  "Altura (cm)", alturaController, TextInputType.number),
-              _construirBotaoCalcular(),
-              _construirTextoResultado(),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.amber,
+            borderRadius: BorderRadiusDirectional.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 5,
+                blurRadius: 7,
+                offset: const Offset(0, 3),
+              ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _construirIconePessoa(),
+                    _construirCampoTexto("Nome", nomeController),
+                    _construirCampoTexto(
+                        "Peso (kg)", pesoController, TextInputType.number),
+                    _construirCampoTexto(
+                        "Altura (cm)", alturaController, TextInputType.number),
+                    _construirBotaoCalcular(),
+                    _construirListaResultados(),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -88,7 +105,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget _construirIconePessoa() {
-    return Icon(Icons.person,
+    return const Icon(Icons.person,
         size: 120, color: Color.fromARGB(255, 12, 12, 12));
   }
 
@@ -100,14 +117,18 @@ class _HomeState extends State<Home> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+        labelStyle: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
       ),
       textAlign: TextAlign.center,
-      style: TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 25.0),
+      style:
+          const TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 25.0),
       controller: controller,
       validator: (value) {
         if (value?.isEmpty ?? true) {
           return "Insira $labelText!";
+        } else if (keyboardType == TextInputType.number &&
+            double.tryParse(value!) == null) {
+          return "Insira um número válido!";
         } else {
           return null;
         }
@@ -122,21 +143,53 @@ class _HomeState extends State<Home> {
         height: 50.0,
         highlightColor: Colors.amber,
         child: ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState?.validate() ?? false) _calcular();
-          },
-          child: Text("Calcular",
-              style: TextStyle(color: Colors.white, fontSize: 25.0)),
+          onPressed: _calcular,
+          child: Text("CALCULAR",
+              style: TextStyle(color: Colors.black54, fontSize: 18.0)),
         ),
       ),
     );
   }
 
-  Widget _construirTextoResultado() {
-    return Text(
-      _textInfo,
-      textAlign: TextAlign.center,
-      style: TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 25.0),
+  Widget _construirListaResultados() {
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: _imcList.length,
+      itemBuilder: (context, index) {
+        IMC imc = _imcList[index];
+        return Card(
+          child: ListTile(
+            title: Text("${imc.nome}"),
+            subtitle: Text(imc.obterClassificacao()),
+          ),
+        );
+      },
     );
+  }
+}
+
+class IMC {
+  final String nome;
+  final double peso;
+  final double altura;
+  late final double valor;
+
+  IMC({required this.nome, required this.peso, required this.altura}) {
+    valor = peso / ((altura / 100) * (altura / 100));
+  }
+
+  String obterClassificacao() {
+    if (valor < 18.6)
+      return "Abaixo do peso (${valor.toStringAsPrecision(4)})";
+    else if (valor >= 18.6 && valor < 24.9)
+      return "Peso ideal (${valor.toStringAsPrecision(4)})";
+    else if (valor >= 24.9 && valor < 29.9)
+      return "Levemente acima do peso (${valor.toStringAsPrecision(4)})";
+    else if (valor >= 29.9 && valor < 34.9)
+      return "Obesidade Grau I (${valor.toStringAsPrecision(4)})";
+    else if (valor >= 34.9 && valor < 39.9)
+      return "Obesidade Grau II (${valor.toStringAsPrecision(4)})";
+    else
+      return "Obesidade Grau III (${valor.toStringAsPrecision(4)})";
   }
 }
